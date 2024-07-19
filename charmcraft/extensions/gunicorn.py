@@ -16,6 +16,7 @@
 
 """Gunicorn based extensions."""
 
+import textwrap
 from typing import Any
 
 from overrides import override
@@ -158,7 +159,6 @@ class _GunicornBase(Extension):
                 "grafana-dashboard": {"interface": "grafana_dashboard"},
             },
             "config": {"options": {**self._WEBSERVER_OPTIONS, **self.options}},
-            "parts": {"charm": {"plugin": "charm", "source": "."}},
         }
 
     @override
@@ -175,7 +175,12 @@ class _GunicornBase(Extension):
     @override
     def get_parts_snippet(self) -> dict[str, Any]:
         """Return the parts to add to parts."""
-        return {}
+        return {
+            "charm": {
+                "plugin": "charm",
+                "source": ".",
+            }
+        }
 
 
 class FlaskFramework(_GunicornBase):
@@ -228,8 +233,13 @@ class FlaskFramework(_GunicornBase):
     @override
     def get_parts_snippet(self) -> dict[str, Any]:
         """Return the parts to add to parts."""
-        # rust is needed to build pydantic-core, a dependency of flask.
-        return {"flask-framework/rust-deps": {"plugin": "nil", "build-packages": ["cargo"]}}
+        return {
+            "charm": {
+                "plugin": "charm",
+                "source": ".",
+                "build-snaps": ["rustup"],  # Needed to build pydantic, a flask dependency.
+            }
+        }
 
 
 class DjangoFramework(_GunicornBase):
