@@ -26,7 +26,7 @@ from craft_application import Application, AppMetadata, util
 from craft_parts.plugins import plugins
 from overrides import override
 
-from charmcraft import errors, extensions, models, preprocess, services
+from charmcraft import errors, extensions, models, preprocess, services, utils
 from charmcraft.application import commands
 from charmcraft.main import GENERAL_SUMMARY
 from charmcraft.main import main as old_main
@@ -103,11 +103,7 @@ class Charmcraft(Application):
         # https://github.com/canonical/charmcraft/issues/1697
         if "-" in build_for:
             build_for_options = build_for.split("-")
-            # Force a cross-compile type build.
-            current_platform = util.get_host_architecture()
-            if current_platform in build_for_options:
-                build_for_options.remove(current_platform)
-            build_for = build_for_options[0]
+            build_for = utils.select_architecture(build_for_options)
             craft_cli.emit.debug(
                 f"build-for contains multiple architectures. Building as if for {build_for}"
             )

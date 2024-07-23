@@ -14,6 +14,7 @@
 #
 # For further info, check https://github.com/canonical/charmcraft
 from textwrap import dedent
+from typing import Collection
 from unittest.mock import patch
 
 import distro
@@ -22,10 +23,12 @@ from craft_application import errors
 from hypothesis import given, strategies
 
 from charmcraft import const
+from charmcraft.utils import platform
 from charmcraft.utils.platform import (
     OSPlatform,
     get_host_architecture,
     get_os_platform,
+    select_architecture,
     validate_architectures,
 )
 
@@ -181,3 +184,23 @@ def test_validate_architectures_all_error():
         match="If 'all' is defined for architectures, it must be the only architecture.",
     ):
         validate_architectures(["all", "amd64"], allow_all=True)
+
+
+@pytest.mark.parametrize(
+    ("architectures", "expected"),
+    [
+        (["amd64"], "amd64"),
+        (["riscv64"], "riscv64"),
+        (["riscv64", "amd64"], "amd64"),
+        (["arm64", "armhf", "riscv64"], "arm64")
+    ]
+)
+def test_select_architecture_success(monkeypatch, architectures: Collection[str], expected: str):
+    monkeypatch.setattr(platform, "get_host_architecture", lambda: "riscv64")
+
+    assert select_architecture(architectures) == expected
+
+
+def test_select_architecture_empty() -> None:
+    with pytest.raises(RuntimeError, match="Could not select an architecture."):
+        select_architecture([])

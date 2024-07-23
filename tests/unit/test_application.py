@@ -14,14 +14,16 @@
 #
 # For further info, check https://github.com/canonical/charmcraft
 """Unit tests for application class."""
+import platform
 import textwrap
 from unittest import mock
 
 import craft_application
+from craft_application import util
 import pyfakefs.fake_filesystem
 import pytest
 
-from charmcraft import application, const, errors
+from charmcraft import application, const, errors, utils
 
 
 @pytest.mark.parametrize(
@@ -154,9 +156,9 @@ def test_expand_environment_multi_arch(monkeypatch, emitter, app, build_for, exp
     monkeypatch.setattr(
         craft_application.Application, "_expand_environment", mock_expand_environment
     )
-    mock_get_host_architecture = mock.Mock(return_value="riscv64")
+    util.get_host_architecture.cache_clear()
     monkeypatch.setattr(
-        craft_application.util, "get_host_architecture", mock_get_host_architecture
+        platform, "machine", lambda: "riscv64"
     )
 
     app._expand_environment({}, build_for)

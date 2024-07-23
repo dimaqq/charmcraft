@@ -1,4 +1,4 @@
-# Copyright 2023 Canonical Ltd.
+# Copyright 2023-2024 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import dataclasses
 import pathlib
 import platform
 from collections.abc import Iterable
+from typing import Collection
 
 import distro
 from craft_application import errors
@@ -65,7 +66,7 @@ def get_os_platform(filepath=pathlib.Path("/etc/os-release")):
     return OSPlatform(system=system, release=release, machine=machine)
 
 
-def get_host_architecture():
+def get_host_architecture() -> str:
     """Get host architecture in deb format suitable for base definition."""
     os_platform = get_os_platform()
     return ARCH_TRANSLATIONS.get(os_platform.machine, os_platform.machine)
@@ -86,3 +87,21 @@ def validate_architectures(architectures: Iterable[str], *, allow_all: bool = Fa
             f"Invalid architecture(s): {', '.join(invalid)}",
             details=f"Valid architecture values are: {humanize_list(sorted(const.SUPPORTED_ARCHITECTURES), 'and')}",
         )
+
+
+def select_architecture(architectures: Collection[str]) -> str:
+    """Select an architecture from a collection of architecture names.
+
+    If the collection only contains one item, it returns that item. Otherwise, it always selects
+    a foreign architecture rather than the host architecture.
+
+    :param architectures: A collection of architecture strings
+    :returns: An architecture name from the given collection
+    """
+    if not architectures:
+        raise RuntimeError("Could not select an architecture.")
+    host_arch = get_host_architecture()
+    for arch in architectures:
+        if arch != host_arch:
+            return arch
+    return arch
