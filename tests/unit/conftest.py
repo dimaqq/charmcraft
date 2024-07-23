@@ -14,3 +14,15 @@
 #
 # For further info, check https://github.com/canonical/charmcraft
 """Configuration for all unit tests."""
+
+import pytest
+
+from charmcraft import application
+
+
+@pytest.fixture()
+def app(service_factory) -> application.Charmcraft:
+    return application.Charmcraft(
+        app=application.APP_METADATA,
+        services=service_factory,
+    )

@@ -22,7 +22,7 @@ import sys
 from typing import Any
 
 import craft_cli
-from craft_application import Application, AppMetadata
+from craft_application import Application, AppMetadata, util
 from craft_parts.plugins import plugins
 from overrides import override
 
@@ -94,6 +94,24 @@ class Charmcraft(Application):
         preprocess.add_metadata(self.project_dir, yaml_data)
 
         return yaml_data
+
+    @override
+    def _expand_environment(self, yaml_data: dict[str, Any], build_for: str) -> None:
+        # If we have multiple architectures in build-for, tell craft-parts to
+        # treat it as a single cross-compiling build. Otherwise, we get an error
+        # about the architecture not being supported.
+        # https://github.com/canonical/charmcraft/issues/1697
+        if "-" in build_for:
+            build_for_options = build_for.split("-")
+            # Force a cross-compile type build.
+            current_platform = util.get_host_architecture()
+            if current_platform in build_for_options:
+                build_for_options.remove(current_platform)
+            build_for = build_for_options[0]
+            craft_cli.emit.debug(
+                f"build-for contains multiple architectures. Building as if for {build_for}"
+            )
+        return super()._expand_environment(yaml_data, build_for)
 
     def _configure_services(self, provider_name: str | None) -> None:
         super()._configure_services(provider_name)

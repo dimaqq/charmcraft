@@ -15,11 +15,13 @@
 # For further info, check https://github.com/canonical/charmcraft
 """Unit tests for application class."""
 import textwrap
+from unittest import mock
 
+import craft_application
 import pyfakefs.fake_filesystem
 import pytest
 
-from charmcraft import application, errors
+from charmcraft import application, const, errors
 
 
 @pytest.mark.parametrize(
@@ -125,6 +127,41 @@ def test_extra_yaml_transform_failure(
         app._extra_yaml_transform(charmcraft_dict, build_for=None, build_on="amd64")
 
     assert exc_info.value.args[0] == message
+
+
+@pytest.mark.parametrize("build_for", [str(arch) for arch in const.CharmArch])
+def test_expand_environment_single_arch(monkeypatch, emitter, app, build_for):
+    mock_expand_environment = mock.Mock()
+    monkeypatch.setattr(
+        craft_application.Application, "_expand_environment", mock_expand_environment
+    )
+
+    app._expand_environment({}, build_for)
+
+    mock_expand_environment.assert_called_once_with({}, build_for)
+
+
+@pytest.mark.parametrize(
+    ("build_for", "expected_build_for"),
+    [
+        ("amd64-arm64", "amd64"),
+        ("riscv64-arm64", "arm64"),
+        ("s390x-riscv64-ppc64el", "s390x"),
+    ],
+)
+def test_expand_environment_multi_arch(monkeypatch, emitter, app, build_for, expected_build_for):
+    mock_expand_environment = mock.Mock()
+    monkeypatch.setattr(
+        craft_application.Application, "_expand_environment", mock_expand_environment
+    )
+    mock_get_host_architecture = mock.Mock(return_value="riscv64")
+    monkeypatch.setattr(
+        craft_application.util, "get_host_architecture", mock_get_host_architecture
+    )
+
+    app._expand_environment({}, build_for)
+
+    mock_expand_environment.assert_called_once_with({}, expected_build_for)
 
 
 @pytest.mark.parametrize(
